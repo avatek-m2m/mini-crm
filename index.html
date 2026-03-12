@@ -1,51 +1,64 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
+  <meta charset="UTF-8">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   <style>
-    .kanban-board { display: flex; overflow-x: auto; padding: 20px; gap: 15px; background: #f0f2f5; height: 100vh; }
-    .column-box { min-width: 250px; background: #ebedf0; border-radius: 4px; padding: 10px; }
-    .card { background: white; margin-bottom: 10px; padding: 10px; border-radius: 3px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: grab; }
-    .column-title { font-weight: bold; margin-bottom: 15px; color: #172b4d; font-size: 0.9rem; text-transform: uppercase; }
+    .kanban-board { display: flex; gap: 15px; padding: 20px; overflow-x: auto; background: #f4f5f7; min-height: 100vh; }
+    .column { background: #ebedf0; min-width: 250px; border-radius: 5px; padding: 10px; }
+    .card { background: white; padding: 10px; margin-bottom: 10px; border-radius: 3px; cursor: grab; box-shadow: 0 1px 2px #0003; }
+    h3 { font-weight: bold; margin-bottom: 10px; font-size: 0.8rem; text-transform: uppercase; }
   </style>
 </head>
 <body>
-  <div class="kanban-board">
-    <div class="column-box"> <div class="column-title">Executivo</div> <div id="Executivo" class="list"></div> </div>
-    <div class="column-box"> <div class="column-title">Compra</div> <div id="Compra" class="list"></div> </div>
-    <div class="column-box"> <div class="column-title">NF Compra</div> <div id="NF_Compra" class="list"></div> </div>
-    <div class="column-box"> <div class="column-title">Venda+Etiqueta</div> <div id="Venda_Etiqueta" class="list"></div> </div>
-    <div class="column-box"> <div class="column-title">Despacho</div> <div id="Despacho" class="list"></div> </div>
-    <div class="column-box"> <div class="column-title">ICCID/IMEI</div> <div id="ICCID_IMEI" class="list"></div> </div>
+  <div class="kanban-board" id="board">
+    <div class="column"><h3>Pedido Executivo</h3><div id="Pedido Executivo" class="list"></div></div>
+    <div class="column"><h3>Pedido Compra</h3><div id="Pedido Compra" class="list"></div></div>
+    <div class="column"><h3>NF Compra</h3><div id="NF Compra" class="list"></div></div>
+    <div class="column"><h3>NF Venda+Etiqueta</h3><div id="NF Venda+Etiqueta" class="list"></div></div>
+    <div class="column"><h3>Despacho</h3><div id="Despacho do Pedido" class="list"></div></div>
+    <div class="column"><h3>ICCID/IMEI</h3><div id="Listagem de ICCID e IMEI" class="list"></div></div>
   </div>
 
   <script>
-    // Carrega dados iniciais
-    google.script.run.withSuccessHandler(renderizar).getDadosKanban();
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxaEfSB47PUZSMV5mLFMNCNMerEzTQA1QXNqcXtocW1Y7w2ROUiIwsJJQThKhRs6LFd/exec"; // COLOQUE SUA URL AQUI
 
-    function renderizar(pedidos) {
+    // 1. BUSCAR DADOS (GET)
+    async function carregarDados() {
+      const response = await fetch(`${WEB_APP_URL}?acao=ler`);
+      const pedidos = await response.json();
+      
       pedidos.forEach(p => {
         const card = document.createElement('div');
         card.className = 'card';
-        card.id = p.identificador;
-        card.innerText = p.identificador;
-        const col = document.getElementById(p.status) || document.getElementById('Executivo');
+        card.id = p.id;
+        card.innerText = p.id;
+        const col = document.getElementById(p.status) || document.getElementById('Pedido Executivo');
         col.appendChild(card);
       });
+      initSortable();
+    }
 
-      // Ativa Drag and Drop
+    // 2. ENVIAR DADOS (POST)
+    function initSortable() {
       document.querySelectorAll('.list').forEach(el => {
         new Sortable(el, {
           group: 'kanban',
-          onEnd: (evt) => {
-            const pedidoId = evt.item.id;
-            const novoStatus = evt.to.id;
-            google.script.run.atualizarStatusNoSheet(pedidoId, novoStatus);
+          onEnd: async (evt) => {
+            const payload = { id: evt.item.id, novoStatus: evt.to.id };
+            // Usamos o modo 'no-cors' ou redirecionamento para o Apps Script
+            fetch(WEB_APP_URL, {
+              method: 'POST',
+              mode: 'no-cors', 
+              body: JSON.stringify(payload)
+            });
           }
         });
       });
     }
+
+    carregarDados();
   </script>
 </body>
 </html>

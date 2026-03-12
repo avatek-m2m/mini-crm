@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <style>
+    .kanban-board { display: flex; overflow-x: auto; padding: 20px; gap: 15px; background: #f0f2f5; height: 100vh; }
+    .column-box { min-width: 250px; background: #ebedf0; border-radius: 4px; padding: 10px; }
+    .card { background: white; margin-bottom: 10px; padding: 10px; border-radius: 3px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: grab; }
+    .column-title { font-weight: bold; margin-bottom: 15px; color: #172b4d; font-size: 0.9rem; text-transform: uppercase; }
+  </style>
+</head>
+<body>
+  <div class="kanban-board">
+    <div class="column-box"> <div class="column-title">Executivo</div> <div id="Executivo" class="list"></div> </div>
+    <div class="column-box"> <div class="column-title">Compra</div> <div id="Compra" class="list"></div> </div>
+    <div class="column-box"> <div class="column-title">NF Compra</div> <div id="NF_Compra" class="list"></div> </div>
+    <div class="column-box"> <div class="column-title">Venda+Etiqueta</div> <div id="Venda_Etiqueta" class="list"></div> </div>
+    <div class="column-box"> <div class="column-title">Despacho</div> <div id="Despacho" class="list"></div> </div>
+    <div class="column-box"> <div class="column-title">ICCID/IMEI</div> <div id="ICCID_IMEI" class="list"></div> </div>
+  </div>
+
+  <script>
+    // Carrega dados iniciais
+    google.script.run.withSuccessHandler(renderizar).getDadosKanban();
+
+    function renderizar(pedidos) {
+      pedidos.forEach(p => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.id = p.identificador;
+        card.innerText = p.identificador;
+        const col = document.getElementById(p.status) || document.getElementById('Executivo');
+        col.appendChild(card);
+      });
+
+      // Ativa Drag and Drop
+      document.querySelectorAll('.list').forEach(el => {
+        new Sortable(el, {
+          group: 'kanban',
+          onEnd: (evt) => {
+            const pedidoId = evt.item.id;
+            const novoStatus = evt.to.id;
+            google.script.run.atualizarStatusNoSheet(pedidoId, novoStatus);
+          }
+        });
+      });
+    }
+  </script>
+</body>
+</html>
